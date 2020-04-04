@@ -1,0 +1,128 @@
+#import all modules
+import requests
+from bs4 import BeautifulSoup
+import tkinter as tk #for making GUI
+import plyer #for windows notification
+import threading #for creating thread
+import time #for time
+
+def get_html_data(url): # first created the request
+    data = requests.get(url)
+    return data
+
+url = "https://www.mohfw.gov.in/"
+html_data = get_html_data(url)
+bs = BeautifulSoup(html_data.text, 'html.parser')
+
+#declare variable for all the class in html data, becoz there are 4 diffrent class in main div
+active_cases = "bg-blue"
+cured_case = "bg-green"
+death = "bg-red"
+migrated = "bg-orange"
+
+#main function for scraping the data from site
+def get_corona_details(title):
+    info_div = bs.find("div",{"class":"site-stats-count"}).find_all("li",{"class":title})#it will find the main div and after that find all li tags
+    # print(info_div)
+    details = "" #to get data in this variable
+    for li in info_div:
+        count = li.find("strong").get_text()
+        text = li.find("span").get_text()
+        # print(count)
+        # print(text)
+        # print("Current " + text + " is " + count)
+        details = details + " Current " + text + " is " + count # make data accessible in my format
+        # print(details)
+        return details# it will return the result to datails
+
+
+#this function will help to find the percentage of deaths
+def percentage():
+    death_per = "" #death percentage result will be store here
+    info_div = bs.find("div", {"class": "site-stats-count"}).find_all("li", {"class": "bg-blue"})
+    for li in info_div:
+        count1 = li.find("strong").get_text()
+        # print(count1)
+
+    info_div = bs.find("div", {"class": "site-stats-count"}).find_all("li", {"class": "bg-red"})
+    for li in info_div:
+        count2 = li.find("strong").get_text()
+        # print(count2)
+
+    per = int(count2) / int(count1) * 100
+    death_per = death_per + " Current Percentage of Death is "+ "%.2f" %per
+    return death_per #return to death_per
+    # print("Current Percentage of Death in India = %.2f" %per)#work stop here...internet problem..good night chetan@2.13 am 2nd April 2020♥
+
+
+def refresh():
+    new_data1 = get_corona_details(active_cases)
+    label_1["text"] = new_data1
+
+    new_data2 = get_corona_details(cured_case)
+    label_2["text"] = new_data2
+
+    new_data3 = get_corona_details(death)
+    label_3["text"] = new_data3
+
+    new_data4 = get_corona_details(migrated)
+    label_4["text"] = new_data4
+
+    new_data5 = percentage()
+    label_5["text"] = new_data5
+
+    print("Data is Refreshing from the Server...")
+
+#this funciton will create windows notification
+def notify_me():
+    while True:
+        # if count in get_corona_details()#change here
+        plyer.notification.notify(
+            title="COVID-19 TRACKER - INDIA",
+            message=get_corona_details(active_cases),
+            timeout=10,
+            app_icon="iconcovid.ico"
+        )
+        time.sleep(30)#it will notify me after every 10 minute --just for testing i set it no 30 seconds
+
+#creating thred for notification
+thread_1 = threading.Thread(target=notify_me)
+thread_1.setDaemon(True)
+thread_1.start()
+
+
+#Create Gui  using Tkinter
+root = tk.Tk()
+root.geometry("750x800")
+root.iconbitmap("iconcovid.ico")
+root.title("COVID-19 Tracker - INDIA")
+# root.configure(background = "grey")#background color
+banner =tk.PhotoImage(file="covid19.png")
+bannerLable = tk.Label(root,image=banner,)
+bannerLable.pack()
+
+f = ("Times New Roman",20,"bold",) #font
+label_1 = tk.Label(root, text=get_corona_details(active_cases),font=f)
+label_1.pack()
+
+label_2 = tk.Label(root, text=get_corona_details(cured_case),font=f)
+label_2.pack()
+
+label_3 = tk.Label(root, text=get_corona_details(death),font=f,)
+label_3.pack()
+
+label_4 = tk.Label(root, text=get_corona_details(migrated),font=f)
+label_4.pack()
+
+label_5 = tk.Label(root, text=percentage(),font=f)
+label_5.pack()
+
+# Creating a photoimage object to use image
+photo = tk.PhotoImage(file = "newbutton.png")
+
+f = ("Times New Roman",40,"bold",) #font for button
+refreshbtn = tk.Button(root,text="Click Here to Refresh",image = photo,font=f, command=refresh)
+refreshbtn.pack()
+
+root.mainloop()
+
